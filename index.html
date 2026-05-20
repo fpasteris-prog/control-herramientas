@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f172a">
+<title>Control de Herramientas</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#273449;--border:#334155;--accent:#38bdf8;--accent2:#0ea5e9;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;--radius:12px;--radius-sm:8px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;overflow-x:hidden}
+body{min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.header-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.header-icon svg{width:18px;height:18px;fill:var(--bg)}
+.header-title{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);line-height:1.2}
+.header-sub{font-size:10px;color:var(--text2);font-family:'IBM Plex Mono',monospace}
+.header-tab-btns{margin-left:auto;display:flex;gap:3px}
+.htab{background:none;border:1px solid var(--border);color:var(--text2);font-size:10px;padding:5px 8px;border-radius:6px;cursor:pointer;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.htab.active{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
+.page{display:none;padding:14px 14px 30px;max-width:600px;margin:0 auto}
+.page.active{display:block}
+.vehicle-label{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.vehicle-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px}
+.vcard{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 6px;cursor:pointer;text-align:center;transition:all .15s}
+.vcard:active{transform:scale(.97)}
+.vcard.active{border-color:var(--accent);background:#0c2233}
+.vcard-icon{font-size:20px;margin-bottom:3px}
+.vcard-name{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:var(--text2);line-height:1.3;word-break:break-all}
+.vcard.active .vcard-name{color:var(--accent)}
+.fcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.fcard-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.frow.full{grid-template-columns:1fr}
+.frow:last-child{margin-bottom:0}
+.flabel{font-size:11px;color:var(--text2);margin-bottom:5px;display:block;font-family:'IBM Plex Mono',monospace}
+input,select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;padding:10px 12px;font-family:'IBM Plex Sans',sans-serif;-webkit-appearance:none;appearance:none}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+input::placeholder{color:var(--text3)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+select option{background:var(--surface)}
+.progress-wrap{margin-bottom:14px}
+.progress-bar-bg{background:var(--surface2);border-radius:99px;height:6px;overflow:hidden;margin:6px 0}
+.progress-bar-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+.progress-labels{display:flex;gap:12px}
+.plabel{font-family:'IBM Plex Mono',monospace;font-size:11px;display:flex;align-items:center;gap:4px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.checklist{display:flex;flex-direction:column;gap:6px}
+.ci{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:11px;display:flex;align-items:center;gap:9px;transition:border-color .15s,background .15s}
+.ci.ok{border-color:var(--green);background:#052e16}
+.ci.miss{border-color:var(--red);background:#1f0f0f}
+.ci-qty{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--accent);background:#0c2233;padding:3px 7px;border-radius:5px;flex-shrink:0;min-width:32px;text-align:center}
+.ci-name{font-size:13px;color:var(--text);flex:1;line-height:1.35}
+.ci-btns{display:flex;gap:5px;flex-shrink:0}
+.cbtn{width:36px;height:36px;border-radius:7px;border:1.5px solid var(--border);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;flex-shrink:0}
+.cbtn:active{transform:scale(.93)}
+.cbtn svg{width:16px;height:16px}
+.cbtn.ok-btn.sel{background:var(--green);border-color:var(--green)}
+.cbtn.miss-btn.sel{background:var(--red);border-color:var(--red)}
+.precinto-wrap{background:#0c1f1a;border:1.5px solid var(--green);border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:12px;margin-top:4px}
+.precinto-icon{width:36px;height:36px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.precinto-icon svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round}
+.precinto-wrap input{background:var(--surface2);font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;letter-spacing:.05em;border-color:var(--green)}
+.submit-btn{width:100%;background:var(--accent);color:var(--bg);border:none;border-radius:var(--radius);padding:15px;font-size:15px;font-weight:600;font-family:'IBM Plex Mono',monospace;cursor:pointer;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.submit-btn:active{background:var(--accent2);transform:scale(.99)}
+.submit-btn svg{width:18px;height:18px;fill:none;stroke:var(--bg);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.alert-ok{border-radius:var(--radius);padding:13px 15px;font-size:14px;margin-top:10px;background:#052e16;border:1px solid var(--green);color:#86efac;display:none;align-items:center;gap:10px}
+.alert-ok svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;flex-shrink:0}
+.reg-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.reg-count-badge{background:var(--accent);color:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px}
+.export-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:12px;padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:5px}
+.export-btn svg{width:14px;height:14px;fill:none;stroke:var(--green);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.no-regs{text-align:center;padding:40px 20px;color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:2.2}
+.reg-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:10px}
+.reg-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.reg-vehicle{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--accent)}
+.reg-dt{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3)}
+.reg-person{font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px}
+.reg-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 8px;border-radius:20px;font-weight:500}
+.tag-ok{background:#052e16;color:var(--green);border:1px solid #166534}
+.tag-miss{background:#1f0f0f;color:var(--red);border:1px solid #7f1d1d}
+.tag-prec{background:#0c1c2e;color:var(--accent);border:1px solid #1e40af}
+.reg-obs{font-size:12px;color:var(--text3);margin-top:3px}
+.qr-vehicle-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.qr-vc-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.qr-vc-box{width:76px;height:76px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qr-vc-info h3{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.qr-vc-info p{font-size:12px;color:var(--text2)}
+.qr-url{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);padding:7px 9px;border-radius:6px;word-break:break-all;margin-bottom:9px}
+.qr-dl-btn{width:100%;background:none;border:1px solid var(--border);color:var(--text2);font-size:12px;padding:9px;border-radius:var(--radius-sm);cursor:pointer;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center;gap:6px}
+.qr-dl-btn svg{width:14px;height:14px;fill:none;stroke:var(--text2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.how-card{background:var(--surface2);border-radius:var(--radius);padding:14px;margin-top:14px}
+.how-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.how-step{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+.how-step:last-child{margin-bottom:0}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-text{font-size:13px;color:var(--text2);line-height:1.5}
+.step-text b{color:var(--text)}
+
+/* ADMIN */
+.adm-section{margin-bottom:22px}
+.adm-section-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.adm-vtabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+.avt{background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:11px;padding:7px 12px;border-radius:6px;cursor:pointer;font-family:'IBM Plex Mono',monospace;white-space:nowrap;flex-shrink:0}
+.avt.active{background:#0c2233;border-color:var(--accent);color:var(--accent);font-weight:600}
+.tool-row{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.tool-qty-badge{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--accent);background:#0c2233;padding:3px 7px;border-radius:5px;flex-shrink:0;min-width:32px;text-align:center}
+.tool-name{font-size:13px;color:var(--text);flex:1;line-height:1.3}
+.del-btn{width:30px;height:30px;border-radius:6px;border:1px solid #7f1d1d;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.del-btn:active{background:#1f0f0f}
+.del-btn svg{width:14px;height:14px;fill:none;stroke:var(--red);stroke-width:2.5;stroke-linecap:round}
+.add-row{display:flex;gap:7px;margin-top:10px}
+.add-row input{flex:1;font-size:14px;padding:10px 10px}
+.qty-inp{width:58px!important;flex:none!important}
+.add-btn{background:var(--green);border:none;color:#fff;padding:0 14px;border-radius:var(--radius-sm);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;flex-shrink:0;white-space:nowrap;height:44px}
+.add-btn:active{background:#16a34a}
+.save-btn{width:100%;background:none;border:1.5px solid var(--accent);color:var(--accent);border-radius:var(--radius);padding:12px;font-size:14px;font-weight:600;font-family:'IBM Plex Mono',monospace;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px}
+.save-btn:active{background:#0c2233}
+.save-btn svg{width:15px;height:15px;fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.flash{padding:10px 12px;border-radius:var(--radius-sm);background:#052e16;border:1px solid var(--green);color:#86efac;font-size:13px;margin-top:8px;display:none;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace}
+.flash svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;flex-shrink:0}
+.emp-row{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.emp-name{font-size:14px;color:var(--text);flex:1;font-family:'IBM Plex Sans',sans-serif}
+
+/* PASS MODAL */
+.pass-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
+.pass-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;width:100%;max-width:320px}
+.pass-title{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.pass-title svg{width:18px;height:18px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round}
+.pass-sub{font-size:12px;color:var(--text3);margin-bottom:18px;font-family:'IBM Plex Mono',monospace}
+.pass-box input{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;letter-spacing:.15em;text-align:center;margin-bottom:10px}
+.pass-confirm-btn{width:100%;background:var(--accent);color:var(--bg);border:none;border-radius:var(--radius-sm);padding:13px;font-size:14px;font-weight:600;font-family:'IBM Plex Mono',monospace;cursor:pointer;margin-bottom:8px}
+.pass-confirm-btn:active{background:var(--accent2)}
+.pass-cancel-btn{width:100%;background:none;border:1px solid var(--border);color:var(--text2);border-radius:var(--radius-sm);padding:11px;font-size:13px;font-family:'IBM Plex Mono',monospace;cursor:pointer}
+.pass-error{color:var(--red);font-size:12px;font-family:'IBM Plex Mono',monospace;text-align:center;margin-bottom:8px;display:none}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">
+    <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+  </div>
+  <div>
+    <div class="header-title">CTRL HERRAMIENTAS</div>
+    <div class="header-sub">Control vehicular</div>
+  </div>
+  <div class="header-tab-btns">
+    <button class="htab active" onclick="showPage('form')">Form</button>
+    <button class="htab" onclick="showPage('regs')">Regs<span id="hcount"></span></button>
+    <button class="htab" onclick="showPage('qrs')">QR</button>
+    <button class="htab" onclick="showPage('admin')">⚙ Admin</button>
+  </div>
+</div>
+
+<!-- FORMULARIO -->
+<div class="page active" id="page-form">
+  <div style="margin-bottom:16px">
+    <div class="vehicle-label">Vehículo</div>
+    <div class="vehicle-cards">
+      <div class="vcard active" id="vcard-CAMION_AI163KD" onclick="selectVehicle('CAMION_AI163KD')">
+        <div class="vcard-icon">🚛</div><div class="vcard-name">CAMION<br>AI163KD</div>
+      </div>
+      <div class="vcard" id="vcard-CAMION_AG826CB" onclick="selectVehicle('CAMION_AG826CB')">
+        <div class="vcard-icon">🚚</div><div class="vcard-name">CAMION<br>AG826CB</div>
+      </div>
+      <div class="vcard" id="vcard-FURGON_AF889KX" onclick="selectVehicle('FURGON_AF889KX')">
+        <div class="vcard-icon">🚐</div><div class="vcard-name">FURGON<br>AF889KX</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fcard">
+    <div class="fcard-title">Operador</div>
+    <div class="frow full" style="margin-bottom:10px">
+      <div>
+        <label class="flabel">Empleado</label>
+        <select id="empleado-sel">
+          <option value="">— Seleccionar —</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div><label class="flabel">Fecha</label><input type="date" id="fecha"></div>
+      <div><label class="flabel">Hora</label><input type="time" id="hora"></div>
+    </div>
+    <div class="frow full">
+      <div>
+        <label class="flabel">N° precinto al abrir</label>
+        <input type="text" id="prec-ant" placeholder="Ej: 0006966" inputmode="numeric">
+      </div>
+    </div>
+  </div>
+
+  <div class="fcard">
+    <div class="fcard-title">Checklist — <span id="vehicle-label-title">CAMION AI163KD</span></div>
+    <div class="progress-wrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="pbar" style="width:0%"></div></div>
+      <div class="progress-labels">
+        <span class="plabel"><span class="dot" style="background:var(--green)"></span><span id="cnt-ok" style="color:var(--green)">0</span>&nbsp;OK</span>
+        <span class="plabel"><span class="dot" style="background:var(--red)"></span><span id="cnt-miss" style="color:var(--red)">0</span>&nbsp;Falta</span>
+        <span class="plabel"><span class="dot" style="background:var(--border)"></span><span id="cnt-pend" style="color:var(--text3)">0</span>&nbsp;Pendiente</span>
+      </div>
+    </div>
+    <div class="checklist" id="checklist"></div>
+  </div>
+
+  <div class="fcard">
+    <div class="fcard-title">Cierre</div>
+    <div class="frow full" style="margin-bottom:10px">
+      <input type="text" id="obs" placeholder="Observaciones (opcional)">
+    </div>
+    <label class="flabel">Precinto NUEVO al cerrar</label>
+    <div class="precinto-wrap">
+      <div class="precinto-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <input type="text" id="prec-nuevo" placeholder="Ej: 0006967" inputmode="numeric" style="font-size:18px;font-weight:600">
+    </div>
+  </div>
+
+  <button class="submit-btn" onclick="submitControl()">
+    <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+    Registrar control
+  </button>
+  <div class="alert-ok" id="alert-ok">
+    <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    Control registrado correctamente.
+  </div>
+</div>
+
+<!-- REGISTROS -->
+<div class="page" id="page-regs">
+  <div class="reg-header">
+    <span class="reg-count-badge" id="reg-badge">0 registros</span>
+    <button class="export-btn" onclick="exportExcel()">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Exportar Excel
+    </button>
+  </div>
+  <div id="reg-list"><div class="no-regs">Sin registros aún.<br>Completá el formulario<br>para comenzar.</div></div>
+</div>
+
+<!-- QR -->
+<div class="page" id="page-qrs">
+  <div id="qr-list"></div>
+  <div class="how-card">
+    <div class="how-title">Cómo implementar</div>
+    <div class="how-step"><span class="step-num">1</span><span class="step-text"><b>Subir este archivo</b> a GitHub Pages o Netlify (gratuito)</span></div>
+    <div class="how-step"><span class="step-num">2</span><span class="step-text"><b>Imprimir los QR</b> y pegarlos en cada caja</span></div>
+    <div class="how-step"><span class="step-num">3</span><span class="step-text"><b>El operador escanea</b> el QR — el formulario se abre listo</span></div>
+    <div class="how-step"><span class="step-num">4</span><span class="step-text"><b>Exportar Excel</b> desde Registros cuando necesites</span></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="page" id="page-admin">
+
+  <div class="adm-section">
+    <div class="adm-section-title">👤 Lista de empleados</div>
+    <div id="emp-list"></div>
+    <div class="add-row">
+      <input type="text" id="new-emp" placeholder="Apellido, Nombre" style="font-size:14px;padding:10px 10px">
+      <button class="add-btn" onclick="addEmployee()">+ Agregar</button>
+    </div>
+    <div class="flash" id="flash-emp">
+      <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+      Lista de empleados actualizada.
+    </div>
+  </div>
+
+  <div class="adm-section">
+    <div class="adm-section-title">🔧 Herramientas por vehículo</div>
+    <div class="adm-vtabs">
+      <button class="avt active" id="avt-CAMION_AI163KD" onclick="selectAdminV('CAMION_AI163KD')">CAMION AI163KD</button>
+      <button class="avt" id="avt-CAMION_AG826CB" onclick="selectAdminV('CAMION_AG826CB')">CAMION AG826CB</button>
+      <button class="avt" id="avt-FURGON_AF889KX" onclick="selectAdminV('FURGON_AF889KX')">FURGON AF889KX</button>
+    </div>
+    <div id="admin-tool-list"></div>
+    <div class="add-row">
+      <input type="text" class="qty-inp" id="new-qty" placeholder="Cant." inputmode="numeric">
+      <input type="text" id="new-tool" placeholder="Nombre de la herramienta" style="font-size:14px;padding:10px 10px">
+      <button class="add-btn" onclick="addTool()">+ Agregar</button>
+    </div>
+    <button class="save-btn" onclick="saveTools()">
+      <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Guardar cambios en herramientas
+    </button>
+    <div class="flash" id="flash-tools">
+      <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+      Herramientas actualizadas. El checklist quedará actualizado.
+    </div>
+  </div>
+
+</div>
+
+<script>
+let VEHICLES = {
+  CAMION_AI163KD:{name:"CAMION AI163KD",items:[
+    {qty:"1",name:'Caja de Herramientas Pretul (Cód 20533)'},
+    {qty:"1",name:'Alicate de Corte Diagonal 7" (Cód 22678)'},
+    {qty:"1",name:'Pinza para Electricista 8" (Cód 22674)'},
+    {qty:"1",name:'Pinza de Punta y Corte 8" (Cód 22671)'},
+    {qty:"1",name:'Pinza de Extensión 12" (Cód 17352)'},
+    {qty:"1",name:'Llave Ajustable Pretul "Francesa" (Cód 21825)'},
+    {qty:"1",name:'Juego de Llaves Torx Truper (Cód 13647) x9 pzas'},
+    {qty:"1",name:'Juego de Destornilladores Pretul (Cód 20214) x6 pzas'},
+    {qty:"1",name:'Martillo Bola 450g Total'},
+    {qty:"1",name:'Juego de Llaves Combinadas Pretul (Cód 22018) x22 pzas'},
+    {qty:"1",name:'Juego de Sujetadores con Crique Truper (Cód 19285) x2 pzas'},
+  ]},
+  CAMION_AG826CB:{name:"CAMION AG826CB",items:[
+    {qty:"1",name:'Juego de Llaves Combinadas 20 pzas Pretul'},
+    {qty:"1",name:'Juego de Tubos 21 pzas Pretul'},
+    {qty:"1",name:'Martillo'},
+    {qty:"1",name:'Juego de Destornilladores 6 pzas Pretul'},
+    {qty:"1",name:'Llave Ajustable Truper 10"'},
+    {qty:"1",name:'Pinza de Fuerza Pretul'},
+    {qty:"1",name:'Pinza de Punta Pretul'},
+    {qty:"1",name:'Pinza de Corte Pretul'},
+    {qty:"1",name:'Juego de Llaves Torx 9 pzas Truper'},
+    {qty:"1",name:'Cinta Aisladora'},
+    {qty:"1",name:'Cinta Ductap'},
+    {qty:"20",name:'Precintos'},
+    {qty:"1",name:'Cúter'},
+  ]},
+  FURGON_AF889KX:{name:"FURGON AF889KX",items:[
+    {qty:"1",name:'Caja de Herramientas Plástica Pretul (Cód 20532)'},
+    {qty:"1",name:'Juego de 12 Llaves Combinadas Lüsqtoff (JLC12-9)'},
+    {qty:"1",name:'Llave Ajustable Pretul (Cód 21824)'},
+    {qty:"1",name:'Desarmador de Cruz Pretul (Cód 21499)'},
+    {qty:"1",name:'Destornillador Plano Truper (Cód 14043)'},
+    {qty:"1",name:'Cinta Tacsa 15m Negra'},
+    {qty:"1",name:'Pinza de Fuerza Pretul (Cód 22676)'},
+    {qty:"2",name:'Grilletes 6,5 TN'},
+  ]}
+};
+
+let EMPLOYEES = [
+  "García, Juan","González, María","Rodríguez, Carlos","López, Ana",
+  "Martínez, Pedro","Sánchez, Laura","Romero, Diego","Torres, Sofía"
+];
+
+let currentVehicle='CAMION_AI163KD', currentAdminV='CAMION_AI163KD';
+let checks={}, registros=[];
+
+// --- EMPLOYEE SELECT ---
+function renderEmpSelect(){
+  const sel=document.getElementById('empleado-sel');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Seleccionar empleado —</option>';
+  [...EMPLOYEES].sort().forEach(e=>{
+    const o=document.createElement('option');
+    o.value=e; o.textContent=e;
+    if(e===cur) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+// --- VEHICLE ---
+function selectVehicle(vid){
+  document.querySelectorAll('.vcard').forEach(c=>c.classList.remove('active'));
+  document.getElementById('vcard-'+vid).classList.add('active');
+  currentVehicle=vid;
+  document.getElementById('vehicle-label-title').textContent=VEHICLES[vid].name;
+  buildChecklist(vid);
+}
+
+function buildChecklist(vid){
+  checks={};
+  const cl=document.getElementById('checklist');
+  cl.innerHTML='';
+  VEHICLES[vid].items.forEach((it,i)=>{
+    checks[i]=null;
+    const d=document.createElement('div');
+    d.className='ci'; d.id='ci_'+i;
+    d.innerHTML=`<span class="ci-qty">x${it.qty}</span>
+      <span class="ci-name">${it.name}</span>
+      <div class="ci-btns">
+        <button class="cbtn ok-btn" id="ok_${i}" onclick="setCheck(${i},'ok')" aria-label="Presente">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </button>
+        <button class="cbtn miss-btn" id="miss_${i}" onclick="setCheck(${i},'miss')" aria-label="Falta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>`;
+    cl.appendChild(d);
+  });
+  updateCounts();
+}
+
+function setCheck(i,val){
+  checks[i]=val;
+  const ci=document.getElementById('ci_'+i);
+  ci.classList.remove('ok','miss');
+  document.getElementById('ok_'+i).classList.remove('sel');
+  document.getElementById('miss_'+i).classList.remove('sel');
+  if(val==='ok'){ci.classList.add('ok');document.getElementById('ok_'+i).classList.add('sel');}
+  else{ci.classList.add('miss');document.getElementById('miss_'+i).classList.add('sel');}
+  updateCounts();
+}
+
+function updateCounts(){
+  let ok=0,miss=0,pend=0;
+  Object.values(checks).forEach(v=>{if(v==='ok')ok++;else if(v==='miss')miss++;else pend++;});
+  document.getElementById('cnt-ok').textContent=ok;
+  document.getElementById('cnt-miss').textContent=miss;
+  document.getElementById('cnt-pend').textContent=pend;
+  const t=ok+miss+pend;
+  document.getElementById('pbar').style.width=t?Math.round((ok+miss)/t*100)+'%':'0%';
+}
+
+// --- SUBMIT ---
+function submitControl(){
+  const emp=document.getElementById('empleado-sel').value;
+  const fecha=document.getElementById('fecha').value;
+  const hora=document.getElementById('hora').value;
+  const precAnt=document.getElementById('prec-ant').value.trim();
+  const precNuevo=document.getElementById('prec-nuevo').value.trim();
+  const obs=document.getElementById('obs').value.trim();
+  if(!emp){alert('Seleccioná un empleado.');return;}
+  if(!fecha||!hora||!precNuevo){alert('Completar: Fecha, Hora y Precinto nuevo.');return;}
+  const items=VEHICLES[currentVehicle].items;
+  let ok=0,miss=0,falt=[];
+  items.forEach((it,i)=>{if(checks[i]==='ok')ok++;else if(checks[i]==='miss'){miss++;falt.push(it.name);}});
+  const p=emp.split(','); const apellido=(p[0]||'').trim(); const nombre=(p[1]||'').trim();
+  registros.push({vehiculo:VEHICLES[currentVehicle].name,empleado:emp,nombre,apellido,fecha,hora,precAnt:precAnt||'-',precNuevo,ok,miss,faltantes:falt.join('; ')||'-',obs:obs||'-'});
+  updateRegBadge(); renderRegistros();
+  const al=document.getElementById('alert-ok');
+  al.style.display='flex'; setTimeout(()=>al.style.display='none',3500);
+  document.getElementById('prec-nuevo').value='';
+  document.getElementById('prec-ant').value='';
+  document.getElementById('obs').value='';
+  document.getElementById('empleado-sel').value='';
+  buildChecklist(currentVehicle);
+}
+
+function updateRegBadge(){
+  const n=registros.length;
+  document.getElementById('reg-badge').textContent=n+' registro'+(n!==1?'s':'');
+  document.getElementById('hcount').textContent=n?'('+n+')':'';
+}
+
+function renderRegistros(){
+  const el=document.getElementById('reg-list');
+  if(!registros.length){el.innerHTML='<div class="no-regs">Sin registros aún.<br>Completá el formulario<br>para comenzar.</div>';return;}
+  el.innerHTML=[...registros].reverse().map(r=>`
+    <div class="reg-card">
+      <div class="reg-card-top"><span class="reg-vehicle">${r.vehiculo}</span><span class="reg-dt">${r.fecha} ${r.hora}</span></div>
+      <div class="reg-person">${r.empleado}</div>
+      <div class="reg-tags">
+        <span class="tag tag-ok">✓ ${r.ok} presentes</span>
+        ${r.miss>0?`<span class="tag tag-miss">✗ ${r.miss} faltantes</span>`:''}
+        <span class="tag tag-prec">Precinto: ${r.precNuevo}</span>
+      </div>
+      ${r.faltantes!=='-'?`<div class="reg-obs">Faltantes: ${r.faltantes}</div>`:''}
+      ${r.obs!=='-'?`<div class="reg-obs">Obs: ${r.obs}</div>`:''}
+    </div>`).join('');
+}
+
+function exportExcel(){
+  if(!registros.length){alert('No hay registros para exportar.');return;}
+  const data=[
+    ['Vehículo','Empleado','Apellido','Nombre','Fecha','Hora','Precinto Anterior','Precinto Nuevo','Presentes','Faltantes (cant)','Detalle Faltantes','Observaciones'],
+    ...registros.map(r=>[r.vehiculo,r.empleado,r.apellido,r.nombre,r.fecha,r.hora,r.precAnt,r.precNuevo,r.ok,r.miss,r.faltantes,r.obs])
+  ];
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[{wch:18},{wch:22},{wch:14},{wch:14},{wch:12},{wch:8},{wch:16},{wch:14},{wch:10},{wch:10},{wch:40},{wch:30}];
+  XLSX.utils.book_append_sheet(wb,'Registros',ws);
+  XLSX.writeFile(wb,'Control_Herramientas_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// --- QR ---
+function generateQRPattern(text){
+  let h=0;for(let i=0;i<text.length;i++){h=(Math.imul(31,h)+text.charCodeAt(i))|0;}
+  const sz=25,g=Array.from({length:sz},()=>Array(sz).fill(0));
+  [[0,0],[0,sz-7],[sz-7,0]].forEach(([r,c])=>{
+    for(let i=0;i<7;i++)for(let j=0;j<7;j++)
+      g[r+i][c+j]=(i===0||i===6||j===0||j===6)?1:(i>=2&&i<=4&&j>=2&&j<=4?1:0);
+  });
+  for(let i=0;i<sz;i++){if(i<6||i>sz-9){g[6][i]=i%2===0?1:0;g[i][6]=i%2===0?1:0;}}
+  let s=h>>>0;
+  for(let r=0;r<sz;r++)for(let c=0;c<sz;c++){if(g[r][c]===0){s=(s*1664525+1013904223)>>>0;g[r][c]=(s>>>16)&1;}}
+  return g;
+}
+function drawQR(el,text,sz){
+  const p=generateQRPattern(text),n=p.length,cell=Math.floor(sz/n),off=Math.floor((sz-n*cell)/2);
+  let rects='';
+  p.forEach((row,r)=>row.forEach((v,c)=>{if(v)rects+=`<rect x="${off+c*cell}" y="${off+r*cell}" width="${cell}" height="${cell}" fill="#111"/>` }));
+  el.innerHTML=`<svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg"><rect width="${sz}" height="${sz}" fill="white"/>${rects}</svg>`;
+}
+function buildQRList(){
+  const el=document.getElementById('qr-list');el.innerHTML='';
+  Object.entries(VEHICLES).forEach(([vid,v])=>{
+    const url=`${"https://gentle-buttercream-08561c.netlify.app/"}?v=${vid}`;
+    const card=document.createElement('div');
+    card.className='qr-vehicle-card';
+    card.innerHTML=`
+      <div class="qr-vc-header">
+        <div class="qr-vc-box" id="qrb_${vid}"></div>
+        <div class="qr-vc-info"><h3>${v.name}</h3><p>${v.items.length} herramientas en checklist</p></div>
+      </div>
+      <div class="qr-url">${url}</div>
+      <button class="qr-dl-btn" onclick="window.open('https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(url)}&size=400x400&margin=20','_blank')">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Descargar QR en alta calidad
+      </button>`;
+    el.appendChild(card);
+    drawQR(document.getElementById('qrb_'+vid),vid,76);
+  });
+}
+
+// --- ADMIN: EMPLEADOS ---
+function renderEmpList(){
+  const el=document.getElementById('emp-list');el.innerHTML='';
+  const sorted=[...EMPLOYEES].sort();
+  sorted.forEach((e,i)=>{
+    const d=document.createElement('div');d.className='emp-row';
+    const btn=document.createElement('button');
+    btn.className='del-btn';btn.setAttribute('aria-label','Eliminar');
+    btn.innerHTML=`<svg viewBox="0 0 24 24"><path d="M3 6h18M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>`;
+    btn.addEventListener('click',()=>delEmployee(e));
+    const span=document.createElement('span');span.className='emp-name';span.textContent=e;
+    d.appendChild(span);d.appendChild(btn);
+    el.appendChild(d);
+  });
+}
+function addEmployee(){
+  const inp=document.getElementById('new-emp');
+  const v=inp.value.trim();
+  if(!v){alert('Ingresá apellido y nombre.');return;}
+  if(EMPLOYEES.includes(v)){alert('Ya existe ese empleado.');return;}
+  EMPLOYEES.push(v);inp.value='';
+  renderEmpList();renderEmpSelect();flash('flash-emp');
+}
+function delEmployee(name){
+  if(!confirm('¿Dar de baja a "'+name+'"?')) return;
+  EMPLOYEES=EMPLOYEES.filter(e=>e!==name);
+  renderEmpList();renderEmpSelect();flash('flash-emp');
+}
+
+// --- ADMIN: HERRAMIENTAS ---
+function selectAdminV(vid){
+  currentAdminV=vid;
+  document.querySelectorAll('.avt').forEach(b=>b.classList.remove('active'));
+  document.getElementById('avt-'+vid).classList.add('active');
+  renderAdminTools();
+}
+function renderAdminTools(){
+  const el=document.getElementById('admin-tool-list');el.innerHTML='';
+  VEHICLES[currentAdminV].items.forEach((it,i)=>{
+    const d=document.createElement('div');d.className='tool-row';
+    d.innerHTML=`<span class="tool-qty-badge">x${it.qty}</span>
+      <span class="tool-name">${it.name}</span>
+      <button class="del-btn" onclick="delTool(${i})" aria-label="Eliminar">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+      </button>`;
+    el.appendChild(d);
+  });
+}
+function delTool(i){
+  const it=VEHICLES[currentAdminV].items[i];
+  if(!confirm('¿Dar de baja "'+it.name+'"?')) return;
+  VEHICLES[currentAdminV].items.splice(i,1);renderAdminTools();
+}
+function addTool(){
+  const qty=document.getElementById('new-qty').value.trim()||'1';
+  const name=document.getElementById('new-tool').value.trim();
+  if(!name){alert('Ingresá el nombre.');return;}
+  VEHICLES[currentAdminV].items.push({qty,name});
+  document.getElementById('new-qty').value='';
+  document.getElementById('new-tool').value='';
+  renderAdminTools();
+}
+function saveTools(){
+  if(currentVehicle===currentAdminV) buildChecklist(currentVehicle);
+  flash('flash-tools');
+}
+
+function flash(id){
+  const el=document.getElementById(id);el.style.display='flex';
+  setTimeout(()=>el.style.display='none',3000);
+}
+
+// --- ADMIN PASSWORD ---
+const ADMIN_PASS = '1234';
+let adminUnlocked = false;
+
+function showPage(p){
+  if(p==='admin' && !adminUnlocked){ showPassModal(); return; }
+  document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
+  document.querySelectorAll('.htab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const idx={form:0,regs:1,qrs:2,admin:3}[p];
+  document.querySelectorAll('.htab')[idx].classList.add('active');
+  if(p==='qrs') buildQRList();
+  if(p==='admin'){renderEmpList();renderAdminTools();}
+}
+
+function showPassModal(){
+  document.getElementById('pass-modal').style.display='flex';
+  document.getElementById('pass-input').value='';
+  document.getElementById('pass-error').style.display='none';
+  setTimeout(()=>document.getElementById('pass-input').focus(),100);
+}
+function closePassModal(){
+  document.getElementById('pass-modal').style.display='none';
+}
+function checkPass(){
+  const val=document.getElementById('pass-input').value;
+  if(val===ADMIN_PASS){
+    adminUnlocked=true;
+    closePassModal();
+    showPage('admin');
+  } else {
+    document.getElementById('pass-error').style.display='block';
+    document.getElementById('pass-input').value='';
+    document.getElementById('pass-input').focus();
+  }
+}
+document.addEventListener('keydown',function(e){
+  if(document.getElementById('pass-modal').style.display==='flex'){
+    if(e.key==='Enter') checkPass();
+    if(e.key==='Escape') closePassModal();
+  }
+});
+
+// --- INIT ---
+const now=new Date();
+document.getElementById('fecha').value=now.toISOString().slice(0,10);
+document.getElementById('hora').value=now.toTimeString().slice(0,5);
+renderEmpSelect();
+buildChecklist('CAMION_AI163KD');
+const vp=new URLSearchParams(location.search).get('v');
+if(vp && VEHICLES[vp]) selectVehicle(vp);
+</script>
+
+<!-- PASS MODAL -->
+<div class="pass-overlay" id="pass-modal">
+  <div class="pass-box">
+    <div class="pass-title">
+      <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Acceso restringido
+    </div>
+    <div class="pass-sub">Ingresá la clave para acceder al panel de administración.</div>
+    <input type="password" id="pass-input" placeholder="••••••" inputmode="numeric">
+    <div class="pass-error" id="pass-error">Clave incorrecta. Intentá de nuevo.</div>
+    <button class="pass-confirm-btn" onclick="checkPass()">Ingresar</button>
+    <button class="pass-cancel-btn" onclick="closePassModal()">Cancelar</button>
+  </div>
+</div>
+</body>
+</html>
